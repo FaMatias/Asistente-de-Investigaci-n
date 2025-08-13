@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de Investigación con IA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4c1d95, #6d28d9, #4c1d95, #111827);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            opacity: 0.3;
+            z-index: -1;
+        }
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .message-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center justify-center min-h-screen relative">
+
+    <div class="container bg-gray-800 p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-5xl mx-auto z-10 border border-gray-700">
+        <div class="profile-card mb-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Asistente de Investigación con IA</h1>
+            <p class="text-lg text-gray-400">
+                Escribe un tema o un borrador, y la IA te ayudará a generar un informe o una imagen.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Columna de escritura -->
+            <div class="writing-section flex flex-col">
+                <textarea id="researchTextarea" class="w-full h-96 p-4 rounded-xl border-2 border-gray-700 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm text-gray-50 placeholder-gray-500 resize-none" placeholder="Escribe un tema (Ej: 'El futuro de la inteligencia artificial') o el borrador de tu informe aquí..."></textarea>
+                
+                <div class="controls flex flex-col sm:flex-row items-center gap-4 mt-4">
+                    <select id="toneSelect" class="flex-1 bg-gray-700 text-white font-semibold py-3 px-6 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="profesional">Tono Profesional</option>
+                        <option value="academico">Tono Académico</option>
+                        <option value="creativo">Tono Creativo</option>
+                        <option value="casual">Tono Casual</option>
+                    </select>
+                    <button id="reportBtn" class="flex-1 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:bg-indigo-700 flex items-center justify-center" onclick="generateReport()">
+                        <span id="reportText">Generar Informe</span>
+                        <div id="reportSpinner" class="spinner ml-2 hidden"></div>
+                    </button>
+                </div>
+                <div class="controls flex flex-col sm:flex-row gap-4 mt-4">
+                    <button id="exportBtn" class="flex-1 bg-sky-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:bg-sky-700 flex items-center justify-center" onclick="exportReport()">
+                        Exportar Informe
+                    </button>
+                    <button id="imageBtn" class="flex-1 bg-emerald-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:bg-emerald-700 flex items-center justify-center" onclick="generateImage()">
+                        <span id="imageText">Generar Imagen</span>
+                        <div id="imageSpinner" class="spinner ml-2 hidden"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Columna de imagen -->
+            <div class="image-section flex flex-col items-center justify-center bg-gray-900 p-6 rounded-xl border-2 border-gray-700">
+                <div id="imageContainer" class="w-full h-full flex items-center justify-center">
+                    <p class="text-center text-gray-500">Aquí aparecerá tu imagen generada.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="messageBox" class="message-box bg-red-500 text-white p-4 rounded-xl shadow-lg">
+        <p id="messageText"></p>
+    </div>
+
+    <script>
+        const researchTextarea = document.getElementById('researchTextarea');
+        const reportBtn = document.getElementById('reportBtn');
+        const imageBtn = document.getElementById('imageBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const toneSelect = document.getElementById('toneSelect');
+        const imageContainer = document.getElementById('imageContainer');
+        const reportText = document.getElementById('reportText');
+        const reportSpinner = document.getElementById('reportSpinner');
+        const imageText = document.getElementById('imageText');
+        const imageSpinner = document.getElementById('imageSpinner');
+
+        window.showMessage = function(text, type = 'info', duration = 3000) {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            messageText.textContent = text;
+            messageBox.className = 'message-box p-4 rounded-xl shadow-lg';
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-500', 'text-white');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-emerald-500', 'text-white');
+            } else {
+                messageBox.classList.add('bg-indigo-500', 'text-white');
+            }
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, duration);
+        }
+
+        // Función de retroceso exponencial para reintentos de API
+        const exponentialBackoff = async (func, retries = 5, delay = 1000) => {
+            try {
+                return await func();
+            } catch (error) {
+                if (retries > 0) {
+                    console.warn(`API call failed, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return exponentialBackoff(func, retries - 1, delay * 2);
+                } else {
+                    throw error;
+                }
+            }
+        };
+
+        // Genera un informe con el modelo de texto
+        async function generateReport() {
+            const userPrompt = researchTextarea.value.trim();
+            if (!userPrompt) {
+                showMessage('Por favor, escribe un tema o un borrador para generar un informe.', 'error');
+                return;
+            }
+
+            reportBtn.disabled = true;
+            imageBtn.disabled = true;
+            reportText.textContent = 'Generando...';
+            reportSpinner.classList.remove('hidden');
+            const selectedTone = toneSelect.value;
+
+            try {
+                await exponentialBackoff(async () => {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: `Genera un informe detallado y profesional sobre el siguiente tema o borrador con un tono ${selectedTone}:\n\n${userPrompt}` }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        researchTextarea.value = text;
+                        showMessage("Informe generado con éxito.", "success");
+                    } else {
+                        throw new Error("Respuesta del modelo inesperada.");
+                    }
+                });
+            } catch (e) {
+                console.error("Error al generar el informe:", e);
+                showMessage("Error al generar el informe. Inténtalo de nuevo.", "error");
+            } finally {
+                reportBtn.disabled = false;
+                imageBtn.disabled = false;
+                reportText.textContent = 'Generar Informe';
+                reportSpinner.classList.add('hidden');
+            }
+        }
+
+        // Genera una imagen con el modelo de imagen
+        async function generateImage() {
+            const userPrompt = researchTextarea.value.trim();
+            if (!userPrompt) {
+                showMessage('Por favor, escribe algo para generar una imagen.', 'error');
+                return;
+            }
+
+            imageBtn.disabled = true;
+            reportBtn.disabled = true;
+            imageText.textContent = 'Generando...';
+            imageSpinner.classList.remove('hidden');
+
+            // Tomar las últimas 500 palabras del texto para el prompt
+            const promptForImage = userPrompt.split(/\s+/).slice(-500).join(" ");
+            imageContainer.innerHTML = `<div class="spinner"></div>`;
+
+            try {
+                await exponentialBackoff(async () => {
+                    const payload = { instances: { prompt: promptForImage }, parameters: { "sampleCount": 1} };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                        const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                        imageContainer.innerHTML = `<img src="${imageUrl}" alt="Imagen generada por IA" class="w-full h-auto rounded-xl">`;
+                        showMessage("Imagen generada con éxito.", "success");
+                    } else {
+                        throw new Error("Respuesta del modelo inesperada.");
+                    }
+                });
+            } catch (e) {
+                console.error("Error al generar la imagen:", e);
+                imageContainer.innerHTML = `<p class="text-center text-red-500">Error al generar la imagen. Inténtalo de nuevo.</p>`;
+                showMessage("Error al generar la imagen. Inténtalo de nuevo.", "error");
+            } finally {
+                imageBtn.disabled = false;
+                reportBtn.disabled = false;
+                imageText.textContent = 'Generar Imagen';
+                imageSpinner.classList.add('hidden');
+            }
+        }
+
+        // Exportar el contenido del textarea como un archivo de texto
+        function exportReport() {
+            const content = researchTextarea.value;
+            if (!content) {
+                showMessage('No hay contenido para exportar.', 'error');
+                return;
+            }
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'informe.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Informe exportado con éxito.', 'success');
+        }
+    </script>
+</body>
+</html>
