@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistente de Investigación con IA</title>
     <h5>Fabricio Matías Toso</h5>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -75,7 +74,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Columna de escritura -->
             <div class="writing-section flex flex-col">
                 <textarea id="researchTextarea" class="w-full h-96 p-4 rounded-xl border-2 border-gray-700 bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm text-gray-50 placeholder-gray-500 resize-none" placeholder="Escribe un tema (Ej: 'El futuro de la inteligencia artificial') o el borrador de tu informe aquí..."></textarea>
                 
@@ -102,7 +100,6 @@
                 </div>
             </div>
 
-            <!-- Columna de imagen -->
             <div class="image-section flex flex-col items-center justify-center bg-gray-900 p-6 rounded-xl border-2 border-gray-700">
                 <div id="imageContainer" class="w-full h-full flex items-center justify-center">
                     <p class="text-center text-gray-500">Aquí aparecerá tu imagen generada.</p>
@@ -159,6 +156,10 @@
                 }
             }
         };
+        
+        // Coloca tu clave de API aquí.
+        // No la compartas públicamente.
+        const API_KEY = "TU_CLAVE_AQUÍ"; 
 
         // Genera un informe con el modelo de texto
         async function generateReport() {
@@ -179,8 +180,7 @@
                     let chatHistory = [];
                     chatHistory.push({ role: "user", parts: [{ text: `Genera un informe detallado y profesional sobre el siguiente tema o borrador con un tono ${selectedTone}:\n\n${userPrompt}` }] });
                     const payload = { contents: chatHistory };
-                    const apiKey = "";
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -229,8 +229,7 @@
             try {
                 await exponentialBackoff(async () => {
                     const payload = { instances: { prompt: promptForImage }, parameters: { "sampleCount": 1} };
-                    const apiKey = "AIzaSyDTrH3WZst2AXoqD6AfeAO52idw_VFoL_c";
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -279,3 +278,4 @@
     </script>
 </body>
 </html>
+            
