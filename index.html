@@ -229,7 +229,7 @@
             try {
                 await exponentialBackoff(async () => {
                     const payload = { instances: { prompt: promptForImage }, parameters: { "sampleCount": 1} };
-                    const apiKey = "";
+                    const apiKey = "AIzaSyDTrH3WZst2AXoqD6AfeAO52idw_VFoL_c";
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
                     const response = await fetch(apiUrl, {
                         method: 'POST',
